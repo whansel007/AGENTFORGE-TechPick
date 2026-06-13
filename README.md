@@ -34,9 +34,12 @@ Brain ─▶ Research ─▶ Aggregator ─▶ Scoring ─▶ Recommender
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-cp .env.example .env        # add ANTHROPIC_API_KEY (required)
+cp .env.example .env        # add TOKENROUTER_API_KEY (required)
 python main.py              # runs offline with mock evidence
 ```
+
+LLM calls route through [TokenRouter](https://tokenrouter.io) (Anthropic provider
+by default). Add your provider keys in the TokenRouter dashboard.
 
 Add `VIDEODB_API_KEY` / `BRIGHTDATA_API_KEY` to `.env` to switch the research
 agents to live data — wire-up points are marked `TODO` in
@@ -56,7 +59,7 @@ main.py                CLI + report formatting
 src/
   pipeline.py          orchestration
   schemas.py           Pydantic models (evidence, claims, recommendation)
-  llm.py               Anthropic wrapper (claude-opus-4-8, structured output)
+  llm.py               TokenRouter wrapper (claude-opus-4-8, structured output)
   scoring.py           deterministic scoring + confidence
   cache.py             scrape-once disk cache
   mockdata.py          offline demo evidence

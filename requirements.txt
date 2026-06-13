@@ -1,4 +1,4 @@
-anthropic>=0.69.0
+tokenrouter>=0.1
 pydantic>=2.7
 python-dotenv>=1.0
 # Optional research sources (pipeline falls back to mock data if absent / no keys)

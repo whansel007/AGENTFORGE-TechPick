@@ -3,7 +3,7 @@
     python main.py            # run the pipeline, print ranked recommendations
     python main.py --no-cache # ignore the scrape cache and re-gather
 
-Requires ANTHROPIC_API_KEY (in .env). VideoDB / Bright Data keys are optional —
+Requires TOKENROUTER_API_KEY (in .env). VideoDB / Bright Data keys are optional —
 without them the research agents use mock evidence so the demo runs offline.
 """
 from __future__ import annotations

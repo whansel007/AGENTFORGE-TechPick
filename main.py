@@ -25,7 +25,7 @@ from src.schemas import Recommendation
 
 def _print_report(recs: list[Recommendation]) -> None:
     print("\n" + "=" * 64)
-    print("  TECH REVIEW ASSISTANT — PHONES (best across tiers)")
+    print("  TECHPICK — PHONES (best across tiers)")
     print("=" * 64)
     for r in recs:
         print(f"\n[{r.bucket}]  {r.product}  ({r.tier})")

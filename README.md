@@ -1,12 +1,17 @@
-# AIFORGE — Evidence-Based Tech Review Assistant
+# TechPick — Evidence-Based Tech Review Assistant
 
-Agent Forge hackathon project. Scrapes live opinions from **curated YouTube
-reviewers** (via VideoDB transcripts) and **Reddit** (via Bright Data), aggregates
-recurring **pros/cons** by evidence recurrence, and recommends phones with
-**citations** (links + timestamps).
+> **Agent Forge hackathon submission** · Multi-agent pipeline · TokenRouter + VideoDB + Bright Data  
+> **Demo:** `uvicorn app:app --reload` → http://127.0.0.1:8000 · See [SUBMISSION.md](SUBMISSION.md) for judge demo script.
 
-**Demo scope:** phones, best across tiers — iPhone 17 Pro (flagship) · Google
-Pixel 9a (mid) · Nothing Phone (3a) (budget). Edit `config.py` to change.
+Scrapes live opinions from **curated YouTube reviewers** (VideoDB transcripts +
+timestamps) and **Reddit** (Bright Data), aggregates recurring **pros/cons** by
+evidence recurrence, and recommends phones with **citations** and **explainable
+scores**. Ask natural-language questions — priorities like battery or camera
+re-weight the ranking.
+
+**Try:** *"What's the best phone for battery life?"* · *"I care most about camera"*
+
+**Demo scope:** iPhone 17 Pro (flagship) · Google Pixel 9a (mid) · Nothing Phone (3a) (budget). Edit `config.py` to change.
 
 ## Pipeline (matches the design diagram)
 
@@ -56,27 +61,36 @@ python main.py --quiet      # report only, no progress logs
 Ask a natural-language question and get a formatted report:
 
 ```bash
-pip install -r requirements.txt
+source .venv/bin/activate
 uvicorn app:app --reload
 ```
 
-Open http://127.0.0.1:8000 — e.g. *"What's the best phone to get now?"*
+Open http://127.0.0.1:8000 — e.g. *"What's the best phone for battery life?"*
+
+**API:** `GET /api/about` (project metadata) · `POST /api/ask` with `{"question":"..."}`
+
+Full demo script and rubric mapping: **[SUBMISSION.md](SUBMISSION.md)**
 
 ## Layout
 
 ```
+app.py                 FastAPI web UI + /api/ask, /api/about
 config.py              products, curated channels, limits, model
 main.py                CLI + report formatting
+static/index.html      comparison UI
 src/
   pipeline.py          orchestration
+  answer.py            bullet-point verdicts
+  priorities.py        question → scoring categories
+  report.py            JSON serialization for API
   schemas.py           Pydantic models (evidence, claims, recommendation)
   llm.py               TokenRouter (.com) wrapper, structured JSON output
   scoring.py           deterministic scoring + confidence
   cache.py             scrape-once disk cache
   mockdata.py          offline demo evidence
   brightdata/          search + scrape helpers (Bright Data skills patterns)
-  videodb/           ingest + search helpers (VideoDB skills patterns)
+  videodb/             ingest + search helpers (VideoDB skills patterns)
   agents/              brain, videodb, brightdata, aggregator, recommender
 ```
 
-Model: `claude-opus-4-8` with adaptive thinking and structured outputs.
+Default model: `anthropic/claude-opus-4.8-fast` (override via `TOKENROUTER_MODEL` in `.env`).

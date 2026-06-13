@@ -11,8 +11,6 @@ Falls back to mock evidence if keys are missing or live calls fail.
 """
 from __future__ import annotations
 
-import os
-
 from src import cache
 from src.brightdata import client as bd_client
 from src.brightdata import scrape as bd_scrape
@@ -30,7 +28,7 @@ def gather(product: dict, limits: dict) -> list[EvidenceItem]:
     if cached is not None:
         return [EvidenceItem(**e) for e in cached]
 
-    if os.environ.get("BRIGHTDATA_API_KEY"):
+    if bd_client.api_key():
         try:
             items = _gather_live(product, limits)
         except Exception as e:  # noqa: BLE001 — never let one source kill the run

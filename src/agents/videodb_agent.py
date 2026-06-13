@@ -10,7 +10,6 @@ Falls back to mock evidence if keys are missing or live calls fail.
 """
 from __future__ import annotations
 
-import os
 from concurrent.futures import ThreadPoolExecutor
 
 import config

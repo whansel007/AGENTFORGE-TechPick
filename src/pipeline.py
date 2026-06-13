@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 
+from src import priorities
 from src.agents import aggregator, brain, brightdata_agent, recommender, videodb_agent
 from src.schemas import ProductClaims, Recommendation
 
@@ -29,8 +30,6 @@ def _process(product: dict, job: dict, verbose: bool) -> tuple[ProductClaims, st
 
 
 def run(verbose: bool = True, question: str | None = None) -> list[Recommendation]:
-    from src import priorities
-
     job = brain.build_job()
     products = job["products"]
     prefs = priorities.parse(question) if question else []

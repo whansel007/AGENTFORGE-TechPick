@@ -3,9 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>TechPick</title>
+  <meta name="description" content="TechPick — Agent Forge hackathon. Evidence-based phone picks from curated YouTube + Reddit. Citations, explainable scores, priority-aware ranking." />
+  <meta name="application-name" content="TechPick" />
+  <title>TechPick — Evidence-Based Phone Recommendations</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
   <style>
     :root {
       --beige: #F7F2EA;
@@ -20,27 +22,36 @@
       --muted: #3D3D3D;
       --border: #1A1A1A;
       --border-soft: #C4B9A8;
+      --coral: #FF6B4A;
+      --coral-soft: #FFE8E2;
+      --violet: #7C5CFF;
+      --violet-soft: #EDE8FF;
+      --teal: #1CB8A8;
+      --teal-soft: #D9F5F2;
+      --sun: #FFB020;
+      --sun-soft: #FFF3D6;
       --primary: #1A1A1A;
       --primary-bright: #000000;
       --primary-soft: var(--beige-deep);
-      --secondary: #1A1A1A;
-      --secondary-soft: #E5DDD0;
-      --success: #1B5E20;
-      --success-bright: #14532D;
-      --success-soft: #E4EBE0;
-      --warning: #92400E;
-      --warning-soft: #F5EDD8;
-      --danger: #991B1B;
-      --danger-bright: #7F1D1D;
-      --danger-soft: #F0E4E4;
-      --accent: #0A0A0A;
+      --secondary: var(--violet);
+      --secondary-soft: var(--violet-soft);
+      --success: #1B8A5A;
+      --success-bright: #0F6E45;
+      --success-soft: #DDF5EA;
+      --warning: #C47A08;
+      --warning-soft: #FFF0D0;
+      --danger: #D63D5C;
+      --danger-bright: #B82A47;
+      --danger-soft: #FFE5EC;
+      --accent: var(--teal);
       --font: "Inter", system-ui, sans-serif;
+      --logo: "Syne", var(--font);
       --mono: "JetBrains Mono", monospace;
       --radius: 20px;
       --radius-sm: 12px;
       --gap: 16px;
-      --shadow: 0 4px 20px rgba(10, 10, 10, 0.08);
-      --shadow-hover: 0 8px 28px rgba(10, 10, 10, 0.12);
+      --shadow: 0 4px 20px rgba(10, 10, 10, 0.06);
+      --shadow-hover: 0 8px 28px rgba(10, 10, 10, 0.1);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -73,18 +84,77 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
+      gap: 16px;
+      flex-shrink: 0;
+      padding: 4px 0 8px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .logo-mark {
+      width: 52px;
+      height: 52px;
+      border-radius: 16px;
+      background: var(--violet);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 6px 18px rgba(124, 92, 255, 0.28);
       flex-shrink: 0;
     }
 
-    header h1 {
-      font-size: 28px;
+    .logo-mark svg {
+      width: 28px;
+      height: 28px;
+      fill: none;
+      stroke: #fff;
+      stroke-width: 2.4;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .brand-text h1 {
+      font-family: var(--logo);
+      font-size: 32px;
       font-weight: 800;
-      letter-spacing: -0.03em;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      display: flex;
+      align-items: baseline;
+      gap: 2px;
+    }
+
+    .brand-text h1 .tech {
       color: var(--ink);
     }
 
-    header p { color: var(--muted); font-size: 13px; font-weight: 600; }
+    .brand-text h1 .pick {
+      color: var(--coral);
+    }
+
+    .brand-text p {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+      margin-top: 6px;
+    }
+
+    .brand-tag {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--violet);
+      background: var(--violet-soft);
+      border: 1px solid rgba(124, 92, 255, 0.25);
+      border-radius: 999px;
+      padding: 6px 12px;
+      white-space: nowrap;
+    }
 
     .bento {
       background: var(--beige-card);
@@ -94,9 +164,12 @@
       transition: box-shadow 0.25s ease, transform 0.25s ease;
     }
 
-    .bento:hover { box-shadow: var(--shadow-hover); }
-
-    .ask-box { padding: 16px; flex-shrink: 0; }
+    .ask-box {
+      padding: 16px;
+      flex-shrink: 0;
+      border-color: var(--violet-soft);
+      border-left: 4px solid var(--violet);
+    }
 
     .ask-row { display: flex; gap: 12px; align-items: stretch; }
 
@@ -118,16 +191,18 @@
 
     textarea::placeholder { color: var(--muted); opacity: 0.7; }
 
+    .bento:hover { box-shadow: var(--shadow-hover); }
+
     textarea:focus {
       outline: none;
-      border-color: var(--ink);
-      box-shadow: 0 0 0 3px var(--secondary-soft);
+      border-color: var(--violet);
+      box-shadow: 0 0 0 4px var(--violet-soft);
     }
 
     button {
       background: var(--ink);
       color: var(--beige-card);
-      border: 2px solid var(--ink);
+      border: none;
       border-radius: var(--radius-sm);
       padding: 0 22px;
       font: inherit;
@@ -135,18 +210,18 @@
       font-weight: 700;
       cursor: pointer;
       white-space: nowrap;
-      box-shadow: var(--shadow);
+      box-shadow: 0 4px 14px rgba(10, 10, 10, 0.18);
       transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
     }
 
     button:hover:not(:disabled) {
-      background: #000;
-      transform: translateY(-1px);
-      box-shadow: var(--shadow-hover);
+      background: var(--violet);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(124, 92, 255, 0.3);
     }
 
     button:focus-visible {
-      outline: 3px solid var(--ink);
+      outline: 3px solid var(--violet);
       outline-offset: 3px;
     }
 
@@ -170,7 +245,7 @@
       cursor: pointer;
     }
 
-    .chk input { accent-color: var(--ink); }
+    .chk input { accent-color: var(--violet); }
 
     .enter-hint {
       font-size: 12px;
@@ -181,7 +256,7 @@
     }
 
     .status { font-size: 13px; color: var(--muted); font-weight: 500; }
-    .status.loading { color: var(--ink); animation: pulse 1.2s ease infinite; }
+    .status.loading { color: var(--violet); animation: pulse 1.2s ease infinite; }
     .status.error { color: var(--danger-bright); }
 
     #results {
@@ -199,7 +274,9 @@
 
     .tile-verdict {
       padding: 14px 18px;
-      background: var(--beige-card);
+      background: var(--violet-soft);
+      border-color: var(--violet);
+      border-left: 4px solid var(--violet);
     }
 
     .tile-score { overflow: hidden; border-radius: var(--radius); }
@@ -215,9 +292,9 @@
 
     .focus {
       font-size: 11px;
-      color: var(--ink);
-      background: var(--beige-deep);
-      border: 1px solid var(--border);
+      color: var(--violet);
+      background: var(--violet-soft);
+      border: 1px solid rgba(124, 92, 255, 0.3);
       border-radius: 999px;
       padding: 3px 10px;
       font-family: var(--mono);
@@ -225,25 +302,21 @@
       margin-left: 6px;
     }
 
+    .verdict li::marker { color: var(--coral); }
+
     .verdict ul { padding-left: 18px; margin-top: 8px; }
     .verdict li { margin-bottom: 5px; font-size: 14px; font-weight: 600; color: var(--ink); }
-    .verdict li::marker { color: var(--ink); }
 
-    /* collapsible points */
     .score-dropdown {
       padding: 0;
       overflow: hidden;
-      background: var(--beige-light);
+      background: var(--sun-soft);
       border-radius: var(--radius);
+      border-color: rgba(255, 176, 32, 0.25);
     }
 
     .score-dropdown.bento {
-      background: var(--beige-light);
-      border-color: var(--border-soft);
-    }
-
-    .score-dropdown.bento:hover {
-      box-shadow: var(--shadow-hover);
+      background: var(--sun-soft);
     }
 
     .score-summary {
@@ -254,22 +327,28 @@
       cursor: pointer;
       list-style: none;
       user-select: none;
-      background: var(--beige-light);
+      background: var(--sun-soft);
       border-radius: var(--radius);
     }
 
     .score-summary::-webkit-details-marker { display: none; }
 
-    .score-summary:hover { background: var(--beige); }
+    .score-summary:hover { background: #FFE8BF; }
 
     .score-dropdown[open] .score-summary {
       border-radius: var(--radius) var(--radius) 0 0;
     }
 
     .score-summary:focus-visible {
-      outline: 3px solid var(--ink);
+      outline: 3px solid var(--sun);
       outline-offset: -3px;
-      border-radius: var(--radius);
+    }
+
+    .chevron {
+      font-size: 12px;
+      color: var(--sun);
+      font-weight: 700;
+      transition: transform 0.25s ease;
     }
 
     .score-summary-title {
@@ -297,13 +376,6 @@
 
     .score-dropdown:not([open]) .score-body {
       display: none;
-    }
-
-    .chevron {
-      font-size: 12px;
-      color: var(--ink);
-      font-weight: 700;
-      transition: transform 0.25s ease;
     }
 
     .score-dropdown[open] .chevron { transform: rotate(180deg); }
@@ -404,9 +476,15 @@
       min-height: 380px;
     }
 
+    .phone.bento:not(.top) {
+      background: var(--beige-card);
+      border-color: var(--teal-soft);
+      border-top: 3px solid var(--teal);
+    }
+
     .phone.top {
       background: var(--beige-card);
-      border: 3px solid var(--ink);
+      border: 3px solid var(--coral);
       box-shadow: var(--shadow-hover);
     }
 
@@ -441,7 +519,11 @@
       font-family: var(--mono);
     }
 
-    .badge.top { background: var(--ink); color: var(--beige-card); }
+    .badge.top {
+      background: var(--coral);
+      color: #fff;
+      border: none;
+    }
     .badge.runner { background: var(--warning-soft); color: var(--warning); border: 1px solid var(--warning); }
     .badge.not { background: var(--danger-soft); color: var(--danger-bright); border: 1px solid var(--danger); }
 
@@ -461,8 +543,15 @@
       padding: 10px 12px;
     }
 
-    .block.pro { background: var(--success-soft); }
-    .block.con { background: var(--danger-soft); }
+    .block.pro {
+      background: var(--success-soft);
+      border: 1px solid rgba(27, 138, 90, 0.2);
+    }
+
+    .block.con {
+      background: var(--danger-soft);
+      border: 1px solid rgba(214, 61, 92, 0.2);
+    }
 
     .block h4 {
       font-size: 10px;
@@ -538,13 +627,14 @@
     }
 
     .ev-link {
-      color: var(--ink);
+      color: var(--teal);
       font-weight: 700;
       text-decoration: underline;
       text-underline-offset: 2px;
+      text-decoration-color: var(--coral);
     }
 
-    .ev-link:hover { color: #000; }
+    .ev-link:hover { color: var(--violet); }
 
     .hidden { display: none; }
 
@@ -573,6 +663,8 @@
     @media (max-width: 800px) {
       .compare { grid-template-columns: 1fr; }
       .phone { min-height: 320px; }
+      header { flex-wrap: wrap; }
+      .brand-tag { display: none; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -586,8 +678,21 @@
 <body>
   <div class="wrap">
     <header>
-      <h1>TechPick</h1>
-      <p>Ask by what matters — battery, camera, value…</p>
+      <div class="brand">
+        <div class="logo-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="9" width="13" height="9" rx="2" opacity="0.45"/>
+            <rect x="6" y="6" width="13" height="9" rx="2" opacity="0.7"/>
+            <polyline points="8,16 11,19 18,9"/>
+            <circle cx="18" cy="7" r="1.5" fill="#fff" stroke="none"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1><span class="tech">Tech</span><span class="pick">Pick</span></h1>
+          <p>Ask by what matters — battery, camera, value…</p>
+        </div>
+      </div>
+      <span class="brand-tag">Evidence-based</span>
     </header>
 
     <form class="ask-box bento" id="form">

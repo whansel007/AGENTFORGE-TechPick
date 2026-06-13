@@ -43,4 +43,4 @@ VIDEO_ASPECTS = [
 ]
 
 # --- Model ------------------------------------------------------------------
-MODEL = "claude-opus-4-8"
+MODEL = "anthropic/claude-opus-4.8-fast"

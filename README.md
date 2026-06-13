@@ -38,8 +38,8 @@ cp .env.example .env        # add TOKENROUTER_API_KEY (required)
 python main.py              # runs offline with mock evidence
 ```
 
-LLM calls route through [TokenRouter](https://tokenrouter.io) (Anthropic provider
-by default). Add your provider keys in the TokenRouter dashboard.
+LLM calls go to [tokenrouter.com](https://tokenrouter.com) (`api.tokenrouter.com`) via
+OpenAI-compatible chat completions. Default model: `anthropic/claude-opus-4.8-fast`.
 
 Add `VIDEODB_API_KEY` / `BRIGHTDATA_API_KEY` to `.env` to switch the research
 agents to live data — wire-up points are marked `TODO` in
@@ -59,7 +59,7 @@ main.py                CLI + report formatting
 src/
   pipeline.py          orchestration
   schemas.py           Pydantic models (evidence, claims, recommendation)
-  llm.py               TokenRouter wrapper (claude-opus-4-8, structured output)
+  llm.py               TokenRouter (.com) wrapper, structured JSON output
   scoring.py           deterministic scoring + confidence
   cache.py             scrape-once disk cache
   mockdata.py          offline demo evidence

@@ -1,50 +1,76 @@
-"""Thin TokenRouter wrapper. Centralizes model routing and structured output so
-agents stay declarative.
-"""
+"""TokenRouter (.com) wrapper — OpenAI-compatible chat completions API."""
 from __future__ import annotations
 
-import json
 import os
-import threading
 from typing import Any, Type, TypeVar
 
+import requests
 from pydantic import BaseModel
 
 import config
 
 _T = TypeVar("_T", bound=BaseModel)
 
-_client = None
-_client_lock = threading.Lock()
+_BASE_URL = os.environ.get("TOKENROUTER_BASE_URL", "https://api.tokenrouter.com").rstrip("/")
+_TIMEOUT = 120
 
 
 def _api_key() -> str:
-    key = os.environ.get("TOKENROUTER_API_KEY") or os.environ.get("ANTHROPIC_API_KEY", "")
+    key = os.environ.get("TOKENROUTER_API_KEY", "").strip()
     if not key:
         raise RuntimeError(
             "TOKENROUTER_API_KEY is not set. Copy .env.example to .env and add your "
-            "TokenRouter key (the aggregator and recommender need it)."
+            "TokenRouter key from https://tokenrouter.com"
         )
     return key
 
 
 def _model() -> str:
-    model = os.environ.get("TOKENROUTER_MODEL", config.MODEL)
-    mode = os.environ.get("TOKENROUTER_MODE", "quality")
-    if ":" in model or model.startswith("auto:"):
-        return model
-    return f"{model}:{mode}"
+    return os.environ.get("TOKENROUTER_MODEL", config.MODEL)
 
 
-def _get_client():
-    global _client
-    if _client is None:
-        with _client_lock:
-            if _client is None:
-                from tokenrouter import Tokenrouter  # lazy import for --help without dep
+def _chat(*, messages: list[dict], max_tokens: int, response_format: dict | None = None) -> str:
+    payload: dict[str, Any] = {
+        "model": _model(),
+        "messages": messages,
+        "max_tokens": max_tokens,
+    }
+    if response_format is not None:
+        payload["response_format"] = response_format
 
-                _client = Tokenrouter(api_key=_api_key(), timeout=120.0)
-    return _client
+    try:
+        resp = requests.post(
+            f"{_BASE_URL}/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {_api_key()}",
+                "Content-Type": "application/json",
+            },
+            json=payload,
+            timeout=_TIMEOUT,
+        )
+    except requests.RequestException as e:
+        raise RuntimeError(f"TokenRouter request failed: {e}") from e
+
+    if resp.status_code == 401:
+        raise RuntimeError(
+            "TokenRouter authentication failed. Check TOKENROUTER_API_KEY in .env "
+            f"(from https://tokenrouter.com, not tokenrouter.io)."
+        )
+    if resp.status_code == 403:
+        err = resp.json().get("error", {}).get("message", resp.text)
+        raise RuntimeError(
+            f"TokenRouter access denied for model '{_model()}': {err}. "
+            "Set TOKENROUTER_MODEL to a model your key can access."
+        )
+    if not resp.ok:
+        err = resp.json().get("error", {}).get("message", resp.text) if resp.text else resp.reason
+        raise RuntimeError(f"TokenRouter error {resp.status_code}: {err}")
+
+    data = resp.json()
+    content = data["choices"][0]["message"]["content"]
+    if not content or not str(content).strip():
+        raise RuntimeError("Model returned empty content.")
+    return str(content).strip()
 
 
 def _strict_json_schema(model: Type[BaseModel]) -> dict[str, Any]:
@@ -69,45 +95,15 @@ def _apply_strict(node: Any) -> None:
             _apply_strict(item)
 
 
-def _output_text(resp) -> str:
-    parts: list[str] = []
-    for msg in resp.output or []:
-        for block in msg.content or []:
-            if getattr(block, "type", None) == "text" and block.text:
-                parts.append(block.text)
-    text = "".join(parts).strip()
-    if not text:
-        raise RuntimeError(f"Model returned no text (status={resp.status})")
-    return text
-
-
-def _create(*, system: str, user: str, max_tokens: int, text: dict | None = None):
-    kwargs: dict[str, Any] = {
-        "model": _model(),
-        "instructions": system,
-        "input": user,
-        "max_output_tokens": max_tokens,
-        "router_provider": os.environ.get("TOKENROUTER_PROVIDER", "anthropic"),
-    }
-    if text is not None:
-        kwargs["text"] = text
-    resp = _get_client().responses.create(**kwargs)
-    if resp.status == "failed":
-        err = resp.error
-        msg = err.message if err and err.message else "unknown error"
-        raise RuntimeError(f"TokenRouter request failed: {msg}")
-    if resp.status == "incomplete":
-        raise RuntimeError("Model hit max_output_tokens before completing — raise max_tokens.")
-    return resp
-
-
 def parse(system: str, user: str, schema: Type[_T], max_tokens: int = 8000) -> _T:
     """Structured output: returns a validated instance of `schema`."""
-    resp = _create(
-        system=system,
-        user=user,
+    raw = _chat(
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
         max_tokens=max_tokens,
-        text={
+        response_format={
             "type": "json_schema",
             "json_schema": {
                 "name": schema.__name__,
@@ -116,11 +112,9 @@ def parse(system: str, user: str, schema: Type[_T], max_tokens: int = 8000) -> _
             },
         },
     )
-    raw = _output_text(resp)
     try:
         return schema.model_validate_json(raw)
     except Exception:
-        # Some providers wrap JSON in fences despite schema mode.
         cleaned = raw.strip()
         if cleaned.startswith("```"):
             cleaned = cleaned.split("\n", 1)[-1]
@@ -131,4 +125,10 @@ def parse(system: str, user: str, schema: Type[_T], max_tokens: int = 8000) -> _
 
 def text(system: str, user: str, max_tokens: int = 1500) -> str:
     """Free-form text (used for short rationales)."""
-    return _output_text(_create(system=system, user=user, max_tokens=max_tokens))
+    return _chat(
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
+        max_tokens=max_tokens,
+    )

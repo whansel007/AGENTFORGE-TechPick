@@ -1,6 +1,5 @@
-tokenrouter>=0.1
 pydantic>=2.7
 python-dotenv>=1.0
+requests>=2.31
 # Optional research sources (pipeline falls back to mock data if absent / no keys)
 videodb>=0.2 ; python_version >= "3.9"
-requests>=2.31

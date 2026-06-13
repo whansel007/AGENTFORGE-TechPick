@@ -41,15 +41,26 @@ python main.py              # runs offline with mock evidence
 LLM calls go to [tokenrouter.com](https://tokenrouter.com) (`api.tokenrouter.com`) via
 OpenAI-compatible chat completions. Default model: `anthropic/claude-opus-4.8-fast`.
 
-Add `VIDEODB_API_KEY` / `BRIGHTDATA_API_KEY` to `.env` to switch the research
-agents to live data — wire-up points are marked `TODO` in
-`src/agents/videodb_agent.py` and `src/agents/brightdata_agent.py`. Nothing else
-in the pipeline changes.
+Add `VIDEO_DB_API_KEY` / `BRIGHTDATA_API_KEY` to `.env` to switch the research
+agents to live data. Bright Data follows [brightdata/skills](https://github.com/brightdata/skills)
+(`search` → filter → optional `scrape`); VideoDB follows [video-db/skills](https://github.com/video-db/skills)
+(index → semantic search).
 
 ```bash
 python main.py --no-cache   # re-gather, ignore the scrape cache
 python main.py --quiet      # report only, no progress logs
 ```
+
+## Web UI
+
+Ask a natural-language question and get a formatted report:
+
+```bash
+pip install -r requirements.txt
+uvicorn app:app --reload
+```
+
+Open http://127.0.0.1:8000 — e.g. *"What's the best phone to get now?"*
 
 ## Layout
 
@@ -63,6 +74,8 @@ src/
   scoring.py           deterministic scoring + confidence
   cache.py             scrape-once disk cache
   mockdata.py          offline demo evidence
+  brightdata/          search + scrape helpers (Bright Data skills patterns)
+  videodb/           ingest + search helpers (VideoDB skills patterns)
   agents/              brain, videodb, brightdata, aggregator, recommender
 ```
 

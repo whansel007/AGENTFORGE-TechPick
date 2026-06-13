@@ -49,6 +49,7 @@ class Recommendation(BaseModel):
     rationale: str
     top_pros: list[Claim] = Field(default_factory=list)
     top_cons: list[Claim] = Field(default_factory=list)
+    score_breakdown: dict = Field(default_factory=dict)
 
 
 # Schemas used by the aggregator's structured-output call. The model references

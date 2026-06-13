@@ -1,12 +1,12 @@
-"""VideoDB research agent — per product, find curated-reviewer videos on YouTube,
-ingest + transcribe them, then semantically search each for the aspects we care
-about. Every hit becomes a timestamped, transcript-backed EvidenceItem.
+"""VideoDB research agent — curated YouTube reviews via video-db/skills patterns.
 
-Videos for a product are ingested CONCURRENTLY (each upload+index is I/O-bound,
-waiting on VideoDB's cloud), so wall-clock is ~one video rather than the sum.
+Pipeline (index → search → evidence):
+  1. youtube_search for each phone-focused reviewer channel
+  2. upload + index_spoken_words(force=True)
+  3. semantic search per aspect with InvalidRequestError handling
 
-If VIDEODB_API_KEY is absent (or a live call fails) the agent falls back to mock
-evidence so the pipeline never hard-stops.
+Based on https://github.com/video-db/skills (python skill).
+Falls back to mock evidence if keys are missing or live calls fail.
 """
 from __future__ import annotations
 
@@ -17,8 +17,10 @@ import config
 from src import cache
 from src.mockdata import mock_video_evidence
 from src.schemas import EvidenceItem
+from src.videodb import client as vdb_client
+from src.videodb import ingest as vdb_ingest
+from src.videodb import search as vdb_search
 
-# Only reviewers whose channel covers phones are queried for the phone demo.
 _PHONE_CHANNELS = [c for c in config.CHANNELS if c.get("phone_focus")]
 
 
@@ -28,7 +30,7 @@ def gather(product: dict, channels: list[dict], limits: dict) -> list[EvidenceIt
     if cached is not None:
         return [EvidenceItem(**e) for e in cached]
 
-    if os.environ.get("VIDEODB_API_KEY"):
+    if vdb_client.api_key():
         try:
             items = _gather_live(product, limits)
         except Exception as e:  # noqa: BLE001 — never let one source kill the run
@@ -41,62 +43,36 @@ def gather(product: dict, channels: list[dict], limits: dict) -> list[EvidenceIt
     return items
 
 
-def _mmss(seconds: float) -> str:
-    s = int(seconds or 0)
-    return f"{s // 60:02d}:{s % 60:02d}"
-
-
 def _ingest_channel(conn, coll, product: dict, ch: dict) -> list[EvidenceItem]:
-    """Find, ingest, index, and aspect-search one reviewer's video for a product."""
-    query = f"{ch['name']} {product['name']} review"
-    try:
-        hits = conn.youtube_search(query, result_threshold=3)
-    except Exception as e:  # noqa: BLE001
-        print(f"  [videodb] youtube_search failed for '{query}': {e}")
-        return []
-    hit = next((h for h in hits if h.get("link")), None)
+    hit = vdb_ingest.find_review_video(
+        conn,
+        channel_name=ch["name"],
+        product_name=product["name"],
+    )
     if not hit:
-        print(f"  [videodb] no YouTube result for '{query}'")
         return []
 
-    url, title = hit["link"], hit.get("title", query)
-    print(f"  [videodb] {product['name']} ← {ch['name']}: ingesting '{title[:60]}'")
-    try:
-        video = coll.upload(url=url)
-        video.index_spoken_words()
-    except Exception as e:  # noqa: BLE001
-        print(f"  [videodb] skip {ch['name']} (ingest/index failed: {e})")
+    video = vdb_ingest.upload_and_index(
+        coll,
+        url=hit["url"],
+        title=hit["title"],
+        channel=hit["channel"],
+    )
+    if video is None:
         return []
 
-    items: list[EvidenceItem] = []
-    seen: set[tuple[str, int]] = set()
-    for aspect in config.VIDEO_ASPECTS:
-        try:
-            shots = video.search(aspect, result_threshold=1).get_shots()
-        except Exception:  # noqa: BLE001
-            continue
-        for shot in shots:
-            text = (shot.text or "").strip()
-            k = (text[:60], int(shot.start or 0))
-            if not text or k in seen:
-                continue
-            seen.add(k)
-            items.append(EvidenceItem(
-                source_type="video",
-                source=ch["name"],
-                title=getattr(shot, "video_title", None) or title,
-                url=url,
-                timestamp=_mmss(shot.start),
-                quote=text,
-            ))
-    return items
+    return vdb_search.aspect_evidence(
+        video,
+        aspects=config.VIDEO_ASPECTS,
+        channel=ch["name"],
+        title=hit["title"],
+        url=hit["url"],
+    )
 
 
 def _gather_live(product: dict, limits: dict) -> list[EvidenceItem]:
-    import videodb
-
-    conn = videodb.connect(api_key=os.environ["VIDEODB_API_KEY"])
-    coll = conn.get_collection()
+    conn = vdb_client.connect()
+    coll = vdb_client.get_collection(conn)
 
     max_videos = limits.get("max_videos_per_product", 2)
     channels = _PHONE_CHANNELS[:max_videos]

@@ -28,15 +28,20 @@ def _process(product: dict, job: dict, verbose: bool) -> tuple[ProductClaims, st
     return claims, product["tier"]
 
 
-def run(verbose: bool = True) -> list[Recommendation]:
+def run(verbose: bool = True, question: str | None = None) -> list[Recommendation]:
+    from src import priorities
+
     job = brain.build_job()
     products = job["products"]
+    prefs = priorities.parse(question) if question else []
     if verbose:
         print(f"[brain] category={job['category']} scope={job['price_scope']} "
               f"products={[p['name'] for p in products]}")
+        if prefs:
+            print(f"[brain] priorities={prefs}")
 
     # Fan out across products; ex.map preserves input order.
     with ThreadPoolExecutor(max_workers=max(1, len(products))) as ex:
         scored = list(ex.map(lambda p: _process(p, job, verbose), products))
 
-    return recommender.recommend(scored)
+    return recommender.recommend(scored, priorities=prefs or None)

@@ -1,27 +1,27 @@
-"""Bright Data research agent — discover Reddit discussion of each product via the
-Bright Data SERP API (a Google `site:reddit.com` query), and turn each organic
-result into a Reddit-sourced EvidenceItem (thread URL + snippet).
+"""Bright Data research agent — Reddit discovery via official skill patterns.
 
-Needs BRIGHTDATA_API_KEY and a BRIGHTDATA_ZONE (your SERP/Unlocker zone name from
-the dashboard). If either is missing or the call fails, falls back to mock so the
-pipeline never hard-stops.
+Pipeline (brightdata/skills `search` → `scrape`):
+  1. SERP: Google `site:reddit.com "<product>" review opinion` via SERP API
+  2. Filter: reddit allowlist + product relevance heuristic (skills/patterns.md)
+  3. Scrape (optional): enrich top threads via Web Unlocker when
+     BRIGHTDATA_UNLOCKER_ZONE is set
 
-Deeper comment scraping (Web Unlocker on each thread URL) is a natural extension;
-the SERP snippet is already a real Reddit-sourced excerpt, enough for the MVP.
+Based on ScrapeAlchemist/brightdata-hack-pack examples and brightdata/skills.
+Falls back to mock evidence if keys are missing or live calls fail.
 """
 from __future__ import annotations
 
-import json
 import os
-import re
-import urllib.parse
 
 from src import cache
+from src.brightdata import client as bd_client
+from src.brightdata import scrape as bd_scrape
+from src.brightdata import search as bd_search
 from src.mockdata import mock_reddit_evidence
 from src.schemas import EvidenceItem
 
-_ENDPOINT = "https://api.brightdata.com/request"
-_SUBREDDIT_RE = re.compile(r"reddit\.com/r/([A-Za-z0-9_]+)")
+_REDDIT_QUERY = 'site:reddit.com "{product}" review opinion'
+_ENRICH_TOP_N = 2  # scrape at most this many threads per product (keeps runs fast)
 
 
 def gather(product: dict, limits: dict) -> list[EvidenceItem]:
@@ -44,49 +44,39 @@ def gather(product: dict, limits: dict) -> list[EvidenceItem]:
 
 
 def _gather_live(product: dict, limits: dict) -> list[EvidenceItem]:
-    import requests
-
-    zone = os.environ.get("BRIGHTDATA_ZONE", "serp_api")
-    q = f'site:reddit.com "{product["name"]}" review opinion'
-    google_url = "https://www.google.com/search?" + urllib.parse.urlencode(
-        {"q": q, "hl": "en", "gl": "us", "num": "20", "brd_json": "1"}
-    )
-    payload = {"zone": zone, "url": google_url, "format": "raw"}
-    headers = {
-        "Authorization": f"Bearer {os.environ['BRIGHTDATA_API_KEY']}",
-        "Content-Type": "application/json",
-    }
-
-    print(f"  [brightdata] {product['name']}: SERP reddit search (zone={zone})")
-    resp = requests.post(_ENDPOINT, headers=headers, json=payload, timeout=90)
-    resp.raise_for_status()
-
-    data = json.loads(resp.text)  # brd_json=1 → parsed SERP JSON
-    organic = data.get("organic") or data.get("organic_results") or []
-
+    name = product["name"]
     limit = limits.get("max_reddit_threads_per_product", 6)
+    query = _REDDIT_QUERY.format(product=name)
+
+    print(f"  [brightdata] {name}: SERP reddit search (zone={bd_client.serp_zone()})")
+    serp = bd_search.google_search(query, num=20)
+    threads = bd_search.filter_reddit_threads(
+        bd_search.organic_results(serp),
+        product_name=name,
+        limit=limit,
+    )
+
+    if not threads:
+        print(f"  [brightdata] no reddit results for {name}; using mock")
+        return mock_reddit_evidence(name)
+
     items: list[EvidenceItem] = []
-    seen_urls: set[str] = set()
-    for o in organic:
-        link = o.get("link") or o.get("url") or ""
-        if "reddit.com/r/" not in link or link in seen_urls:
-            continue
-        snippet = (o.get("description") or o.get("snippet") or "").strip()
-        if not snippet:
-            continue
-        seen_urls.add(link)
-        m = _SUBREDDIT_RE.search(link)
+    for idx, thread in enumerate(threads):
+        quote = thread["snippet"]
+        if idx < _ENRICH_TOP_N and bd_client.unlocker_zone():
+            print(f"  [brightdata] {name}: scrape thread {thread['url']}")
+            body = bd_scrape.scrape_raw(thread["url"])
+            if body:
+                enriched = bd_scrape.excerpt_from_page(body)
+                if enriched and not bd_scrape.is_blocked(enriched):
+                    quote = enriched
+
         items.append(EvidenceItem(
             source_type="reddit",
-            source=f"r/{m.group(1)}" if m else "reddit",
-            title=(o.get("title") or "").strip() or "Reddit thread",
-            url=link,
-            quote=snippet,
+            source=thread["subreddit"],
+            title=thread["title"],
+            url=thread["url"],
+            quote=quote,
         ))
-        if len(items) >= limit:
-            break
 
-    if not items:
-        print(f"  [brightdata] no reddit results for {product['name']}; using mock")
-        return mock_reddit_evidence(product["name"])
     return items

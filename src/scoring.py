@@ -18,6 +18,18 @@ from __future__ import annotations
 from src.schemas import Claim, ProductClaims
 
 TOP_N = 5  # how many claims per polarity feed the product score
+PRIORITY_BOOST = 3.0
+NON_PRIORITY_WEIGHT = 0.6
+
+
+def _round1(x: float) -> float:
+    return round(x, 1)
+
+
+def _weight(claim: Claim, priorities: list[str] | None) -> float:
+    if not priorities:
+        return 1.0
+    return PRIORITY_BOOST if claim.category in priorities else NON_PRIORITY_WEIGHT
 
 
 def _count_sources(claim: Claim) -> None:
@@ -28,16 +40,52 @@ def _count_sources(claim: Claim) -> None:
     claim.score = 2 * claim.v + claim.r
 
 
-def score_product(pc: ProductClaims) -> float:
+def _weighted_score(claim: Claim, priorities: list[str] | None) -> float:
+    return claim.score * _weight(claim, priorities)
+
+
+def score_product(pc: ProductClaims, priorities: list[str] | None = None) -> float:
     for c in pc.pros + pc.cons:
         _count_sources(c)
 
-    pc.pros.sort(key=lambda c: c.score, reverse=True)
-    pc.cons.sort(key=lambda c: c.score, reverse=True)
+    pc.pros.sort(key=lambda c: _weighted_score(c, priorities), reverse=True)
+    pc.cons.sort(key=lambda c: _weighted_score(c, priorities), reverse=True)
 
-    pro_sum = sum(c.score for c in pc.pros[:TOP_N])
-    con_sum = sum(c.score for c in pc.cons[:TOP_N])
+    pro_sum = sum(_weighted_score(c, priorities) for c in pc.pros[:TOP_N])
+    con_sum = sum(_weighted_score(c, priorities) for c in pc.cons[:TOP_N])
     return pro_sum - con_sum
+
+
+def _claim_line(c: Claim, priorities: list[str] | None) -> dict:
+    w = _weight(c, priorities)
+    base = c.score
+    weighted = _round1(base * w)
+    return {
+        "text": c.text,
+        "category": c.category,
+        "v": c.v,
+        "r": c.r,
+        "base_score": base,
+        "weight": w,
+        "weighted_score": weighted,
+    }
+
+
+def breakdown(pc: ProductClaims, priorities: list[str] | None = None) -> dict:
+    """Explainable score math. Call after score_product (sources counted, lists sorted)."""
+    pro_lines = [_claim_line(c, priorities) for c in pc.pros[:TOP_N]]
+    con_lines = [_claim_line(c, priorities) for c in pc.cons[:TOP_N]]
+    pro_total = _round1(sum(l["weighted_score"] for l in pro_lines))
+    con_total = _round1(sum(l["weighted_score"] for l in con_lines))
+    net_score = _round1(pro_total - con_total)
+    return {
+        "top_n": TOP_N,
+        "pro_total": pro_total,
+        "con_total": con_total,
+        "net_score": net_score,
+        "pro_lines": pro_lines,
+        "con_lines": con_lines,
+    }
 
 
 def confidence(pc: ProductClaims) -> str:

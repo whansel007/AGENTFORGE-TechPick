@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TechPick</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --beige: #F7F2EA;
+      --beige-deep: #EDE6D9;
+      --beige-light: #FAF6F0;
+      --beige-card: #FFFCF7;
+      --beige-input: #FAF6EF;
+      --surface: var(--beige);
+      --surface-warm: var(--beige-deep);
+      --card: var(--beige-card);
+      --ink: #0A0A0A;
+      --muted: #3D3D3D;
+      --border: #1A1A1A;
+      --border-soft: #C4B9A8;
+      --primary: #1A1A1A;
+      --primary-bright: #000000;
+      --primary-soft: var(--beige-deep);
+      --secondary: #1A1A1A;
+      --secondary-soft: #E5DDD0;
+      --success: #1B5E20;
+      --success-bright: #14532D;
+      --success-soft: #E4EBE0;
+      --warning: #92400E;
+      --warning-soft: #F5EDD8;
+      --danger: #991B1B;
+      --danger-bright: #7F1D1D;
+      --danger-soft: #F0E4E4;
+      --accent: #0A0A0A;
+      --font: "Inter", system-ui, sans-serif;
+      --mono: "JetBrains Mono", monospace;
+      --radius: 20px;
+      --radius-sm: 12px;
+      --gap: 16px;
+      --shadow: 0 4px 20px rgba(10, 10, 10, 0.08);
+      --shadow-hover: 0 8px 28px rgba(10, 10, 10, 0.12);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      min-height: 100%;
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--beige);
+      color: var(--ink);
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    .wrap {
+      min-height: 100vh;
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 16px 16px 48px;
+      display: flex;
+      flex-direction: column;
+      gap: var(--gap);
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    header h1 {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--ink);
+    }
+
+    header p { color: var(--muted); font-size: 13px; font-weight: 600; }
+
+    .bento {
+      background: var(--beige-card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 2px solid var(--border-soft);
+      transition: box-shadow 0.25s ease, transform 0.25s ease;
+    }
+
+    .bento:hover { box-shadow: var(--shadow-hover); }
+
+    .ask-box { padding: 16px; flex-shrink: 0; }
+
+    .ask-row { display: flex; gap: 12px; align-items: stretch; }
+
+    textarea {
+      flex: 1;
+      min-height: 48px;
+      max-height: 48px;
+      resize: none;
+      background: var(--beige-input);
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--ink);
+      font: inherit;
+      font-size: 15px;
+      font-weight: 500;
+      padding: 10px 14px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    textarea::placeholder { color: var(--muted); opacity: 0.7; }
+
+    textarea:focus {
+      outline: none;
+      border-color: var(--ink);
+      box-shadow: 0 0 0 3px var(--secondary-soft);
+    }
+
+    button {
+      background: var(--ink);
+      color: var(--beige-card);
+      border: 2px solid var(--ink);
+      border-radius: var(--radius-sm);
+      padding: 0 22px;
+      font: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      box-shadow: var(--shadow);
+      transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+    }
+
+    button:hover:not(:disabled) {
+      background: #000;
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-hover);
+    }
+
+    button:focus-visible {
+      outline: 3px solid var(--ink);
+      outline-offset: 3px;
+    }
+
+    button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .ask-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .chk {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .chk input { accent-color: var(--ink); }
+
+    .enter-hint {
+      font-size: 12px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-weight: 500;
+      margin-left: auto;
+    }
+
+    .status { font-size: 13px; color: var(--muted); font-weight: 500; }
+    .status.loading { color: var(--ink); animation: pulse 1.2s ease infinite; }
+    .status.error { color: var(--danger-bright); }
+
+    #results {
+      display: flex;
+      flex-direction: column;
+      gap: var(--gap);
+    }
+
+    .compare {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--gap);
+      align-items: stretch;
+    }
+
+    .tile-verdict {
+      padding: 14px 18px;
+      background: var(--beige-card);
+    }
+
+    .tile-score { overflow: hidden; border-radius: var(--radius); }
+
+    .panel-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-weight: 600;
+    }
+
+    .focus {
+      font-size: 11px;
+      color: var(--ink);
+      background: var(--beige-deep);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-family: var(--mono);
+      font-weight: 600;
+      margin-left: 6px;
+    }
+
+    .verdict ul { padding-left: 18px; margin-top: 8px; }
+    .verdict li { margin-bottom: 5px; font-size: 14px; font-weight: 600; color: var(--ink); }
+    .verdict li::marker { color: var(--ink); }
+
+    /* collapsible points */
+    .score-dropdown {
+      padding: 0;
+      overflow: hidden;
+      background: var(--beige-light);
+      border-radius: var(--radius);
+    }
+
+    .score-dropdown.bento {
+      background: var(--beige-light);
+      border-color: var(--border-soft);
+    }
+
+    .score-dropdown.bento:hover {
+      box-shadow: var(--shadow-hover);
+    }
+
+    .score-summary {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 18px;
+      cursor: pointer;
+      list-style: none;
+      user-select: none;
+      background: var(--beige-light);
+      border-radius: var(--radius);
+    }
+
+    .score-summary::-webkit-details-marker { display: none; }
+
+    .score-summary:hover { background: var(--beige); }
+
+    .score-dropdown[open] .score-summary {
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
+
+    .score-summary:focus-visible {
+      outline: 3px solid var(--ink);
+      outline-offset: -3px;
+      border-radius: var(--radius);
+    }
+
+    .score-summary-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-weight: 600;
+    }
+
+    .score-preview {
+      flex: 1;
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .score-dropdown:not([open]) .score-preview {
+      color: var(--muted);
+      font-weight: 500;
+      font-style: italic;
+    }
+
+    .score-dropdown:not([open]) .score-body {
+      display: none;
+    }
+
+    .chevron {
+      font-size: 12px;
+      color: var(--ink);
+      font-weight: 700;
+      transition: transform 0.25s ease;
+    }
+
+    .score-dropdown[open] .chevron { transform: rotate(180deg); }
+
+    .score-body {
+      padding: 0 16px 16px;
+      border-top: 1px solid var(--border-soft);
+      background: var(--beige-light);
+      border-radius: 0 0 var(--radius) var(--radius);
+      animation: slideDown 0.25s ease;
+    }
+
+    .score-body .hint {
+      font-size: 11px;
+      color: var(--muted);
+      margin: 10px 0 8px;
+      font-family: var(--mono);
+    }
+
+    .score-body .score-preview-open {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 10px;
+    }
+
+    .score-grid {
+      display: grid;
+      grid-template-columns: 5rem repeat(3, 1fr);
+      gap: 6px 10px;
+      align-items: start;
+    }
+
+    .score-h {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--ink);
+      padding-bottom: 6px;
+      border-bottom: 2px solid var(--border-soft);
+      font-family: var(--mono);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .score-label {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-family: var(--mono);
+      font-weight: 600;
+    }
+
+    .score-label.net { color: var(--ink); }
+    .score-label.pro { color: var(--success-bright); }
+    .score-label.con { color: var(--danger-bright); }
+
+    .score-cell {
+      font-family: var(--mono);
+      font-size: 11px;
+      line-height: 1.4;
+      padding: 6px 8px;
+      border-radius: var(--radius-sm);
+      background: var(--beige-card);
+      border: 1px solid var(--border-soft);
+      transition: background 0.2s;
+    }
+
+    .score-cell:hover { background: var(--beige); }
+
+    .score-cell.net .score-pts {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .score-cell.sum-pro .score-pts { color: var(--success-bright); font-weight: 700; }
+    .score-cell.sum-con .score-pts { color: var(--danger-bright); font-weight: 700; }
+    .score-pts { font-weight: 600; }
+    .score-formula { color: var(--muted); font-size: 10px; }
+    .score-claim {
+      font-family: var(--font);
+      font-size: 11px;
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .score-empty { color: var(--muted); }
+
+    .phone {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      min-height: 380px;
+    }
+
+    .phone.top {
+      background: var(--beige-card);
+      border: 3px solid var(--ink);
+      box-shadow: var(--shadow-hover);
+    }
+
+    .phone-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+      flex-shrink: 0;
+    }
+
+    .phone-title { font-weight: 700; font-size: 15px; line-height: 1.2; }
+
+    .phone-meta {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: var(--mono);
+      margin-top: 3px;
+      font-weight: 500;
+    }
+
+    .badge {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 4px 10px;
+      border-radius: 999px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      font-family: var(--mono);
+    }
+
+    .badge.top { background: var(--ink); color: var(--beige-card); }
+    .badge.runner { background: var(--warning-soft); color: var(--warning); border: 1px solid var(--warning); }
+    .badge.not { background: var(--danger-soft); color: var(--danger-bright); border: 1px solid var(--danger); }
+
+    .section {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      flex: 1;
+    }
+
+    .block {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 160px;
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+    }
+
+    .block.pro { background: var(--success-soft); }
+    .block.con { background: var(--danger-soft); }
+
+    .block h4 {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 6px;
+      font-family: var(--mono);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .block.pro h4 { color: var(--success-bright); }
+    .block.con h4 { color: var(--danger-bright); }
+
+    .block-scroll {
+      flex: 1;
+      max-height: 220px;
+      min-height: 80px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding-right: 6px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--ink) var(--beige-deep);
+    }
+
+    .block-scroll::-webkit-scrollbar { width: 5px; }
+    .block-scroll::-webkit-scrollbar-thumb {
+      background: var(--ink);
+      border-radius: 999px;
+    }
+
+    .block ul { list-style: none; }
+    .block li {
+      font-size: 13px;
+      margin-bottom: 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-soft);
+    }
+
+    .block li:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+    .claim { font-weight: 700; color: var(--ink); }
+
+    .claim-pts {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      margin-left: 6px;
+    }
+
+    .claim-pts.pro { color: var(--success-bright); }
+    .claim-pts.con { color: var(--danger-bright); }
+
+    .cat {
+      font-size: 9px;
+      color: var(--ink);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-left: 4px;
+      font-family: var(--mono);
+      background: var(--beige-deep);
+      border: 1px solid var(--border-soft);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-weight: 700;
+    }
+
+    .quote {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+      line-height: 1.45;
+      font-weight: 500;
+    }
+
+    .ev-link {
+      color: var(--ink);
+      font-weight: 700;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .ev-link:hover { color: #000; }
+
+    .hidden { display: none; }
+
+    #results.reveal .tile-verdict { animation: fadeUp 0.4s ease both; }
+    #results.reveal .tile-score { animation: fadeUp 0.4s ease 0.06s both; }
+    #results.reveal .compare .phone { animation: fadeUp 0.45s ease both; }
+    #results.reveal .compare .phone:nth-child(1) { animation-delay: 0.1s; }
+    #results.reveal .compare .phone:nth-child(2) { animation-delay: 0.16s; }
+    #results.reveal .compare .phone:nth-child(3) { animation-delay: 0.22s; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    @media (max-width: 800px) {
+      .compare { grid-template-columns: 1fr; }
+      .phone { min-height: 320px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>TechPick</h1>
+      <p>Ask by what matters — battery, camera, value…</p>
+    </header>
+
+    <form class="ask-box bento" id="form">
+      <div class="ask-row">
+        <textarea id="q" name="question" placeholder="What gadget are you looking for? What specifications do you prioritise?" aria-label="Your question"></textarea>
+        <button type="submit" id="btn">Compare</button>
+      </div>
+      <div class="ask-meta">
+        <label class="chk"><input type="checkbox" id="no-cache" /> Fresh scrape</label>
+        <span class="enter-hint">Press Enter ↵</span>
+        <p class="status hidden" id="status"></p>
+      </div>
+    </form>
+
+    <section id="results" class="hidden">
+      <div class="tile-verdict bento">
+        <h2 class="panel-title">Verdict <span class="focus hidden" id="focus"></span></h2>
+        <ul id="summary"></ul>
+      </div>
+
+      <details class="tile-score bento score-dropdown" id="score-details">
+        <summary class="score-summary">
+          <span class="score-summary-title">Points breakdown</span>
+          <span class="score-preview" id="score-preview">Click to show scoring</span>
+          <span class="chevron" aria-hidden="true">▼</span>
+        </summary>
+        <div class="score-body">
+          <p class="hint">Each claim: (2×videos + reddit) × focus weight · Net = Pros Σ − Cons Σ (top 5 each)</p>
+          <p class="score-preview-open" id="score-preview-open"></p>
+          <div class="score-grid" id="scoreboard"></div>
+        </div>
+      </details>
+
+      <div class="compare" id="compare"></div>
+    </section>
+  </div>
+
+  <script>
+    const form = document.getElementById("form");
+    const btn = document.getElementById("btn");
+    const status = document.getElementById("status");
+    const results = document.getElementById("results");
+    const qInput = document.getElementById("q");
+
+    qInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        if (!btn.disabled) form.requestSubmit();
+      }
+    });
+
+    function badgeClass(bucket) {
+      if (bucket === "Top pick") return "top";
+      if (bucket === "Runner-up") return "runner";
+      return "not";
+    }
+
+    function shortBucket(bucket) {
+      if (bucket === "Top pick") return "Top";
+      if (bucket === "Runner-up") return "Alt";
+      return "Skip";
+    }
+
+    function esc(s) {
+      return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function toYoutubeTime(url, timestamp) {
+      if (!url || !timestamp) return url;
+      const parts = timestamp.split(":").map(Number);
+      const secs = parts.length === 2 ? parts[0] * 60 + parts[1] : parts[0];
+      const sep = url.includes("?") ? "&" : "?";
+      return `${url}${sep}t=${secs}`;
+    }
+
+    function orderClaims(claims, categories) {
+      const list = claims || [];
+      if (!categories?.length) return list;
+      const matched = list.filter(c => categories.includes(c.category));
+      const rest = list.filter(c => !categories.includes(c.category));
+      return [...matched, ...rest];
+    }
+
+    function renderEvidence(claim) {
+      const e = (claim.evidence || [])[0];
+      if (!e?.url || !e.quote) return "";
+      const quote = esc(e.quote.slice(0, 120));
+      const suffix = e.quote.length > 120 ? "…" : "";
+      const ts = e.timestamp ? `@${esc(e.timestamp)} ` : "";
+      const href = e.source_type === "video" ? toYoutubeTime(e.url, e.timestamp) : e.url;
+      const label = e.source_type === "video"
+        ? `${esc((e.source || "video").split(" ")[0])} ${ts}`.trim()
+        : "reddit";
+      return `<div class="quote"><a class="ev-link" href="${esc(href)}" target="_blank" rel="noopener">${label}</a> “${quote}${suffix}”</div>`;
+    }
+
+    function findBreakdownLine(lines, claim) {
+      return (lines || []).find(l => l.text === claim.text);
+    }
+
+    function renderClaim(c, showCat, pts, polarity) {
+      const cat = showCat && c.category
+        ? `<span class="cat">${esc(c.category)}</span>` : "";
+      const ptsHtml = pts != null
+        ? `<span class="claim-pts ${polarity === "con" ? "con" : "pro"}">${fmtPts(pts)}</span>`
+        : "";
+      return `<li><div class="claim">${esc(c.text)}${ptsHtml}${cat}</div>${renderEvidence(c)}</li>`;
+    }
+
+    function renderClaimsList(claims, categories, showFocus, breakdownLines, polarity) {
+      const ordered = orderClaims(claims, categories);
+      if (!ordered.length) return "<li>—</li>";
+      return ordered.map(c => {
+        const line = findBreakdownLine(breakdownLines, c);
+        let pts = line?.weighted_score;
+        if (pts != null && polarity === "con") pts = -Math.abs(pts);
+        return renderClaim(c, showFocus, pts, polarity);
+      }).join("");
+    }
+
+    function shortName(name) {
+      return name.length > 18 ? name.slice(0, 16) + "…" : name;
+    }
+
+    function fmtNum(n) {
+      const x = Number(n) || 0;
+      return Number.isInteger(x) ? String(x) : x.toFixed(1);
+    }
+
+    function fmtPts(n) {
+      const x = Number(n) || 0;
+      const s = fmtNum(x);
+      return x >= 0 ? `+${s}` : s;
+    }
+
+    function fmtScoreCell(line, isCon) {
+      if (!line) return '<span class="score-empty">—</span>';
+      const base = `2×${line.v}+${line.r}=${fmtNum(line.base_score)}`;
+      const mult = line.weight !== 1 ? `×${line.weight}` : "";
+      const w = Number(line.weighted_score) || 0;
+      const display = isCon ? fmtPts(-w) : fmtPts(w);
+      const short = esc(line.text.slice(0, 32)) + (line.text.length > 32 ? "…" : "");
+      return `<div class="score-pts">${display}</div><div class="score-formula">(${base})${mult}</div><div class="score-claim">${short}</div>`;
+    }
+
+    function sumLines(lines) {
+      return lines.reduce((s, l) => s + (l?.weighted_score || 0), 0);
+    }
+
+    function scorePreview(recs) {
+      return recs.map(r => fmtPts(r.score_breakdown?.net_score ?? r.product_score)).join(" · ");
+    }
+
+    function renderScoreboard(recs) {
+      const bd = recs.map(r => r.score_breakdown || {});
+      const maxPros = Math.max(1, ...bd.map(b => (b.pro_lines || []).length));
+      const maxCons = Math.max(1, ...bd.map(b => (b.con_lines || []).length));
+      let html = "<div></div>";
+      for (const r of recs) {
+        html += `<div class="score-h">${esc(shortName(r.product))}</div>`;
+      }
+
+      for (let i = 0; i < maxPros; i++) {
+        html += `<div class="score-label pro">Pro ${i + 1}</div>`;
+        for (const b of bd) {
+          html += `<div class="score-cell">${fmtScoreCell((b.pro_lines || [])[i], false)}</div>`;
+        }
+      }
+
+      html += '<div class="score-label pro">Pros Σ</div>';
+      for (const b of bd) {
+        const lines = b.pro_lines || [];
+        const shown = sumLines(lines);
+        html += `<div class="score-cell sum-pro"><div class="score-pts">${fmtPts(b.pro_total ?? shown)}</div></div>`;
+      }
+
+      for (let i = 0; i < maxCons; i++) {
+        html += `<div class="score-label con">Con ${i + 1}</div>`;
+        for (const b of bd) {
+          html += `<div class="score-cell">${fmtScoreCell((b.con_lines || [])[i], true)}</div>`;
+        }
+      }
+
+      html += '<div class="score-label con">Cons Σ</div>';
+      for (const b of bd) {
+        const total = b.con_total ?? sumLines(b.con_lines || []);
+        html += `<div class="score-cell sum-con"><div class="score-pts">${fmtPts(-total)}</div></div>`;
+      }
+
+      html += '<div class="score-label net">Net</div>';
+      for (const b of bd) {
+        const pro = b.pro_total ?? 0;
+        const con = b.con_total ?? 0;
+        const net = b.net_score ?? (pro - con);
+        html += `<div class="score-cell net"><div class="score-pts">${fmtPts(net)}</div><div class="score-formula">${fmtPts(pro)} ${fmtPts(-con)}</div></div>`;
+      }
+
+      return html;
+    }
+
+    function renderPhone(r, categories, showFocus) {
+      const bd = r.score_breakdown || {};
+      const pros = renderClaimsList(r.top_pros, categories, showFocus, bd.pro_lines, "pro");
+      const cons = renderClaimsList(r.top_cons, categories, showFocus, bd.con_lines, "con");
+      const top = r.bucket === "Top pick" ? " top" : "";
+      return `
+        <article class="phone bento${top}">
+          <div class="phone-head">
+            <div>
+              <div class="phone-title">${esc(r.product)}</div>
+              <div class="phone-meta">${esc(r.tier)} · ${fmtNum(r.score_breakdown?.net_score ?? r.product_score)} pts</div>
+            </div>
+            <span class="badge ${badgeClass(r.bucket)}">${shortBucket(r.bucket)}</span>
+          </div>
+          <div class="section">
+            <div class="block pro">
+              <h4>Pros</h4>
+              <div class="block-scroll"><ul>${pros}</ul></div>
+            </div>
+            <div class="block con">
+              <h4>Cons</h4>
+              <div class="block-scroll"><ul>${cons}</ul></div>
+            </div>
+          </div>
+        </article>`;
+    }
+
+    function showResults() {
+      results.classList.remove("hidden");
+      results.classList.remove("reveal");
+      void results.offsetWidth;
+      results.classList.add("reveal");
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const question = document.getElementById("q").value.trim();
+      if (!question) return;
+
+      btn.disabled = true;
+      status.className = "status loading";
+      status.classList.remove("hidden");
+      status.textContent = "Researching…";
+      results.classList.add("hidden");
+      results.classList.remove("reveal");
+
+      try {
+        const res = await fetch("/api/ask", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            question,
+            no_cache: document.getElementById("no-cache").checked,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || res.statusText);
+
+        document.getElementById("summary").innerHTML =
+          (data.summary_bullets || []).map(b => `<li>${esc(b)}</li>`).join("");
+
+        const focus = document.getElementById("focus");
+        if (data.priorities?.length) {
+          focus.textContent = data.priorities.join(", ");
+          focus.classList.remove("hidden");
+        } else {
+          focus.classList.add("hidden");
+        }
+
+        document.getElementById("score-details").removeAttribute("open");
+        document.getElementById("score-preview").textContent = "Click to show scoring";
+        document.getElementById("score-preview-open").textContent =
+          "Net: " + scorePreview(data.recommendations);
+        document.getElementById("scoreboard").innerHTML =
+          renderScoreboard(data.recommendations);
+        document.getElementById("compare").innerHTML =
+          data.recommendations.map(r => renderPhone(
+            r, data.priority_categories || [], (data.priority_categories || []).length > 0
+          )).join("");
+
+        showResults();
+        status.classList.add("hidden");
+      } catch (err) {
+        status.className = "status error";
+        status.textContent = err.message || "Request failed.";
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
